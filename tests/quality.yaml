@@ -1,0 +1,86 @@
+# Music-theory accuracy. Deterministic checks pin exact facts; the judge catches subtler errors.
+- description: Spells a major seventh chord
+  metadata: { suite: quality }
+  vars:
+    question: What notes are in a G major seventh chord?
+  assert:
+    - type: javascript
+      metric: accuracy
+      value: |
+        const notes = ['G', 'B', 'D'];
+        const hasNotes = notes.every((n) => new RegExp(`\\b${n}\\b`).test(output));
+        const hasFSharp = /F(#|♯|-sharp| sharp)/i.test(output);
+        return hasNotes && hasFSharp;
+    - type: llm-rubric
+      metric: accuracy
+      value: States that Gmaj7 is G, B, D, F# (F sharp, not F natural) and does not confuse it with G7 (dominant seventh).
+
+- description: ii–V–I in B-flat major
+  metadata: { suite: quality }
+  vars:
+    question: Give me a ii–V–I progression in B-flat major with seventh chords.
+  assert:
+    - type: regex
+      metric: accuracy
+      value: 'C\s*(m|min|-)\s*7'
+    - type: regex
+      metric: accuracy
+      value: 'F\s*7'
+    - type: regex
+      metric: accuracy
+      value: 'B(b|♭)\s*(maj|Δ|M)\s*7'
+
+- description: Relative minor of E major
+  metadata: { suite: quality }
+  vars:
+    question: What's the relative minor of E major, and why are they related?
+  assert:
+    - type: regex
+      metric: accuracy
+      value: 'C(#|♯| sharp)\s*(minor|m\b)'
+    - type: llm-rubric
+      metric: accuracy
+      value: Explains that C# minor shares E major's key signature (four sharps), starting on the 6th degree of E major.
+
+- description: Why V7 resolves to I
+  metadata: { suite: quality }
+  vars:
+    question: Why does a V7 chord want to resolve to the I chord?
+  assert:
+    - type: llm-rubric
+      metric: accuracy
+      value: Mentions the leading tone resolving up to the tonic and the tritone between the 3rd and 7th of V7 resolving inward or outward. Contains no false theory.
+
+- description: Viola range
+  metadata: { suite: quality }
+  vars:
+    question: I'm writing for string quartet. What's the lowest note the viola can play?
+  assert:
+    - type: regex
+      metric: accuracy
+      value: '\bC3\b|C below middle C|one octave below middle C'
+    - type: llm-rubric
+      metric: accuracy
+      value: Says the viola's lowest note is the C below middle C (C3), its open C string. Does not say a different note.
+
+- description: First-species counterpoint rules
+  metadata: { suite: quality }
+  vars:
+    question: What are the main rules of first-species counterpoint?
+  assert:
+    # Calibrated after run 2: accept any correct phrasing ("parallel perfects", "consecutive 5ths").
+    - type: regex
+      metric: accuracy
+      value: '(?i)(parallel|consecutive)\s+(perfect\s+)?(fifths|5ths|octaves|8ves|perfects)'
+    - type: llm-rubric
+      metric: accuracy
+      value: Correctly describes note-against-note writing, consonant intervals, avoiding parallel perfect fifths and octaves, and beginning and ending on perfect consonances.
+
+- description: Modulation via pivot chord
+  metadata: { suite: quality }
+  vars:
+    question: How do I modulate from C major to G major smoothly?
+  assert:
+    - type: llm-rubric
+      metric: accuracy
+      value: Suggests a pivot chord shared by both keys (for example Am, Em or C) and/or the D or D7 dominant of G. The chords named actually exist in the keys it claims.

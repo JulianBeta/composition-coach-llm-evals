@@ -1,0 +1,7 @@
+node_modules/
+results/
+site/
+redteam/redteam.quick.yaml
+.promptfoo/
+.env
+.DS_Store

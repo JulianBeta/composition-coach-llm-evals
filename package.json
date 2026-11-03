@@ -1,0 +1,24 @@
+{
+  "name": "composition-coach-llm-evals",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Evals and red teaming for Coda, an LLM music-composition coach: Claude Haiku/Sonnet vs. free Qwen, LLM-as-a-judge, Promptfoo in CI",
+  "scripts": {
+    "eval": "promptfoo eval",
+    "eval:claude": "promptfoo eval --filter-providers claude",
+    "eval:free": "promptfoo eval --filter-providers qwen",
+    "eval:smoke": "promptfoo eval --filter-providers claude-haiku --filter-first-n 4",
+    "redteam:generate": "promptfoo redteam generate -c redteam/promptfooconfig.yaml -o redteam/redteam.yaml",
+    "redteam:eval": "promptfoo redteam eval -c redteam/redteam.yaml",
+    "redteam": "npm run redteam:generate && npm run redteam:eval",
+    "view": "promptfoo view",
+    "validate": "promptfoo validate && promptfoo validate -c redteam/promptfooconfig.yaml",
+    "redteam:quick": "node scripts/redteam-subset.mjs && promptfoo redteam eval -c redteam/redteam.quick.yaml -o results/redteam-quick.json -o results/redteam-quick.html",
+    "summary": "node scripts/summarize.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "^5.5.0",
+    "marked": "^18.1.3",
+    "promptfoo": "0.125.1"
+  }
+}

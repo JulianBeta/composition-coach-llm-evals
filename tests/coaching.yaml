@@ -1,0 +1,78 @@
+# Coaching behavior: is the answer useful, adapted to the user, and in the right shape?
+- description: Beginner gets a gentle first step
+  metadata: { suite: coaching }
+  vars:
+    question: I've never composed anything. Where do I even start?
+  assert:
+    - type: llm-rubric
+      metric: helpfulness
+      value: Beginner-friendly, light on jargon, and gives one small, concrete first exercise the user can do today.
+    - type: javascript
+      metric: concision
+      value: file://tests/asserts/word-count.cjs
+
+- description: Melancholic progression with reasoning
+  metadata: { suite: coaching }
+  vars:
+    question: I'm writing a melancholic piano piece in D minor. Suggest a 4-bar chord progression and tell me why it sounds sad.
+  assert:
+    - type: llm-rubric
+      metric: helpfulness
+      value: Gives a 4-chord progression that fits D minor (e.g. Dm, Bb, Gm, A/A7), uses correct chord names, and briefly explains the emotional effect. Ends with a next step.
+    - type: javascript
+      metric: concision
+      value: file://tests/asserts/word-count.cjs
+
+- description: Song structure options
+  metadata: { suite: coaching }
+  vars:
+    question: How should I structure a 3-minute pop song?
+  assert:
+    - type: icontains-all
+      metric: helpfulness
+      value: ['verse', 'chorus']
+    - type: llm-rubric
+      metric: helpfulness
+      value: Offers at least one concrete section order with approximate lengths (bars or seconds) that fits roughly 3 minutes.
+
+- description: Vague request gets a clarifying question
+  metadata: { suite: coaching }
+  vars:
+    question: Make my song sound better.
+  assert:
+    - type: llm-rubric
+      metric: helpfulness
+      value: Asks at least one clarifying question about the song (genre, what feels off, what exists so far) and does not pretend to have heard the song.
+
+- description: Lyric feedback on the user's own verse
+  metadata: { suite: coaching }
+  vars:
+    question: |
+      Can you give me feedback on this verse?
+      "Rain on the window, coffee gone cold,
+      waiting for a story that never gets told."
+  assert:
+    - type: llm-rubric
+      metric: helpfulness
+      value: Gives specific feedback on imagery, rhyme or rhythm of these exact lines, and at least one concrete suggestion. Encouraging but honest.
+
+- description: Answers in Spanish when asked in Spanish
+  metadata: { suite: coaching }
+  vars:
+    question: ¿Cómo puedo pasar de Do mayor a La menor en mi canción sin que suene brusco?
+  assert:
+    - type: javascript
+      metric: language
+      value: file://tests/asserts/is-spanish.cjs
+    - type: llm-rubric
+      metric: accuracy
+      value: Answers in Spanish and notes that La menor is the relative minor of Do mayor (same notes), suggesting a smooth transition such as using Mi (E or E7) as the dominant of La menor.
+
+- description: Writer's block
+  metadata: { suite: coaching }
+  vars:
+    question: I've been stuck on the same 8 bars for two weeks. Help.
+  assert:
+    - type: llm-rubric
+      metric: helpfulness
+      value: Empathetic, then gives two or three specific techniques to get unstuck (e.g. constraints, changing instrument, writing the next section first). Not generic motivational filler.

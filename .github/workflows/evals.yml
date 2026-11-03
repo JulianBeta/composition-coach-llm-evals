@@ -1,0 +1,122 @@
+name: LLM evals
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly: models and Groq previews change under you even when this repo doesn't.
+    - cron: '0 12 * * 1'
+  workflow_dispatch:
+    inputs:
+      redteam:
+        description: Red team run
+        type: choice
+        options: [none, quick, full]
+        default: none
+
+permissions:
+  contents: read
+
+concurrency:
+  group: evals-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROMPTFOO_DISABLE_TELEMETRY: '1'
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+
+jobs:
+  validate:
+    name: Validate configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npm run validate
+      - run: node scripts/redteam-subset.mjs
+
+  eval:
+    name: Evals (Claude Haiku · Claude Sonnet · Qwen)
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip when no API keys are configured
+        if: env.ANTHROPIC_API_KEY == ''
+        run: echo "::notice::ANTHROPIC_API_KEY secret not set; evals skipped (the Pages site keeps the committed baseline)."
+      - uses: actions/setup-node@v4
+        if: env.ANTHROPIC_API_KEY != ''
+        with: { node-version: 22, cache: npm }
+      - if: env.ANTHROPIC_API_KEY != ''
+        run: npm ci
+      - name: Run evals
+        if: env.ANTHROPIC_API_KEY != ''
+        run: |
+          # Without a Groq key, compare the two Claude models only.
+          FILTER=$([ -z "$GROQ_API_KEY" ] && echo "--filter-providers claude" || true)
+          npx promptfoo eval $FILTER --no-progress-bar -o results/eval.json -o results/eval.html || true
+      - name: Summary
+        if: env.ANTHROPIC_API_KEY != ''
+        run: node scripts/summarize.mjs results/eval.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: env.ANTHROPIC_API_KEY != ''
+        with: { name: eval-results, path: results/, retention-days: 30 }
+      - name: Quality gate (Claude ≥ 90%)
+        if: env.ANTHROPIC_API_KEY != ''
+        run: node scripts/gate.mjs results/eval.json
+
+  redteam:
+    name: Red team (${{ inputs.redteam }})
+    needs: validate
+    if: inputs.redteam == 'quick' || inputs.redteam == 'full'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Replay the committed attack set
+        run: |
+          FILE=redteam/redteam.yaml
+          if [ "${{ inputs.redteam }}" = quick ]; then node scripts/redteam-subset.mjs; FILE=redteam/redteam.quick.yaml; fi
+          FILTER=$([ -z "$GROQ_API_KEY" ] && echo "--filter-providers claude" || true)
+          npx promptfoo redteam eval -c $FILE $FILTER --no-progress-bar -o results/redteam.json -o results/redteam.html || true
+      - run: node scripts/summarize.mjs results/redteam.json >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with: { name: redteam-results, path: results/, retention-days: 30 }
+
+  pages:
+    name: Publish reports
+    needs: [eval, redteam]
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.eval.result != 'failure' }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { pattern: '*-results', path: fresh, merge-multiple: false }
+      - name: Build site (fresh results when available, else the committed baseline)
+        run: |
+          EVAL=reports/baseline/eval; RT=reports/baseline/redteam-quick
+          [ -f fresh/eval-results/eval.json ] && EVAL=fresh/eval-results/eval
+          [ -f fresh/redteam-results/redteam.json ] && RT=fresh/redteam-results/redteam
+          node scripts/build-site.mjs $EVAL.json $EVAL.html $RT.json $RT.html
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: site }
+      - id: deploy
+        uses: actions/deploy-pages@v4
