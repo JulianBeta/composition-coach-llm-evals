@@ -24,11 +24,19 @@ targets:
       apiKeyRequired: false
       max_tokens: 4096
       effort: low
-  - id: groq:qwen/qwen3.8-27b
-    label: qwen3.8-27b (free, Groq)
-    config:
-      max_completion_tokens: 4096
-      reasoning_format: hidden
+  # Disabled for now (Gemini API out of credits; Groq not working). Uncomment to re-enable.
+  # - id: google:gemini-3.6-flash
+  #   label: gemini-3.6-flash (Google)
+  #   config:
+  #     generationConfig:
+  #       maxOutputTokens: 4096
+  #       thinkingConfig:
+  #         thinkingLevel: low
+  # - id: groq:qwen/qwen3.8-27b
+  #   label: qwen3.8-27b (free, Groq)
+  #   config:
+  #     max_completion_tokens: 4096
+  #     reasoning_format: hidden
 prompts:
   - id: file://../prompts/coda.cjs
     label: coda-v1

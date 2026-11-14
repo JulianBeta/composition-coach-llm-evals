@@ -24,7 +24,7 @@ would also feed an output filter.
 
 - **Effort `low`** for both Claude models: chat answers don't need deep reasoning, and low effort
   keeps latency and cost down. Raising it is the first lever to try if theory accuracy (F-003) matters more than cost.
-- **`reasoning_format: hidden`** for Qwen: the free model is a reasoning model; without this, its
-  `<think>` trace would reach users. A global `not-contains <think>` assertion guards it.
+- **No visible reasoning**: a global `not-contains <think>` assertion fails any answer that shows a
+  raw reasoning trace, whichever model wrote it.
 - **Same prompt for every model**: the comparison measures the models, not prompt variants.
   Prompt variants are the next experiment (see the README roadmap).

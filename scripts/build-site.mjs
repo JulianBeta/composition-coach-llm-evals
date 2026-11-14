@@ -8,13 +8,15 @@ import { marked } from 'marked';
 const [evalJson, evalHtml, rtJson, rtHtml] = process.argv.slice(2);
 mkdirSync('site', { recursive: true });
 const summarize = (file) => execFileSync('node', ['scripts/summarize.mjs', file], { encoding: 'utf8' });
+// Fresh CI results and the committed baseline can be mixed on one page, so say which is which.
+const source = (file) => (file.startsWith('reports/baseline/') ? ' <span class="badge">committed baseline</span>' : ' <span class="badge fresh">latest CI run</span>');
 
 const sections = [];
 copyFileSync(evalHtml, 'site/eval.html');
-sections.push(`<h2>Evals <a href="eval.html">full report →</a></h2>`, marked.parse(summarize(evalJson).replace(/^# .*\n/, '')));
+sections.push(`<h2>Evals${source(evalJson)} <a href="eval.html">full report →</a></h2>`, marked.parse(summarize(evalJson).replace(/^# .*\n/, '')));
 if (rtJson && existsSync(rtJson)) {
   copyFileSync(rtHtml, 'site/redteam.html');
-  sections.push(`<h2>Red team <a href="redteam.html">full report →</a></h2>`, marked.parse(summarize(rtJson).replace(/^# .*\n/, '')));
+  sections.push(`<h2>Red team${source(rtJson)} <a href="redteam.html">full report →</a></h2>`, marked.parse(summarize(rtJson).replace(/^# .*\n/, '')));
 }
 
 writeFileSync(
@@ -31,10 +33,11 @@ writeFileSync(
   table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: .92rem; display: block; overflow-x: auto; }
   th, td { padding: .45rem .6rem; border-bottom: 1px solid #1b3d5f; text-align: left; } th { color: var(--sea); }
   .badge { display:inline-block; background: var(--fuchsia); color: var(--ink); font-weight: 700; border-radius: 999px; padding: .1rem .7rem; font-size: .8rem; }
+  .badge.fresh { background: var(--sea); }
 </style></head><body><main>
 <p><span class="badge">In progress</span></p>
 <h1>Coda <span>·</span> LLM evals &amp; red team</h1>
-<p class="lead">A music-composition coach chatbot tested with Promptfoo: Claude Haiku 5.5 (small), Claude Sonnet 5.5 (medium) and Qwen 3.8 27B (free, Groq). Quality, guardrails, LLM-as-a-judge rubrics and red teaming. <a href="https://github.com/JulianBeta/composition-coach-llm-evals">Source on GitHub</a>.</p>
+<p class="lead">A music-composition coach chatbot tested with Promptfoo: Claude Haiku 5.5 (small) and Claude Sonnet 5.5 (medium), with a Google Gemini model coming as the third. Quality, guardrails, LLM-as-a-judge rubrics and red teaming. <a href="https://github.com/JulianBeta/composition-coach-llm-evals">Source on GitHub</a>.</p>
 ${sections.join('\n')}
 <p class="lead">Built by <a href="https://julianbeta.github.io">Julian Betancourt Cuervo</a>.</p>
 </main></body></html>`,

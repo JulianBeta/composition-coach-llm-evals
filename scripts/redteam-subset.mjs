@@ -1,6 +1,6 @@
 // Writes redteam/redteam.quick.yaml: only the single-turn attacks (direct + encodings) from the
 // full generated set. Iterative strategies (jailbreak:meta, jailbreak:composite, crescendo) make
-// many attacker/judge calls per attack, so they run in the scheduled CI job instead.
+// many attacker/judge calls per attack, so they only run in the manual `full` CI job.
 // Usage: node scripts/redteam-subset.mjs [strategy,strategy,...]
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dump, load } from 'js-yaml';

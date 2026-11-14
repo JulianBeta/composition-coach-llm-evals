@@ -1,11 +1,11 @@
-name: LLM evals
+name: CI checks
 
 on:
   push:
     branches: [main]
   pull_request:
   schedule:
-    # Weekly: models and Groq previews change under you even when this repo doesn't.
+    # Weekly: hosted models change under you even when this repo doesn't.
     - cron: '0 12 * * 1'
   workflow_dispatch:
     inputs:
@@ -19,13 +19,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: evals-${{ github.ref }}
-  cancel-in-progress: true
+  group: evals-${{ github.ref }}-${{ inputs.redteam || 'none' }}
+  # A new push must not kill a long manual red team.
+  cancel-in-progress: ${{ inputs.redteam == '' || inputs.redteam == 'none' }}
 
 env:
   PROMPTFOO_DISABLE_TELEMETRY: '1'
   ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
 jobs:
   validate:
@@ -36,19 +36,21 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - run: npm test
       - run: npm run validate
       - run: node scripts/redteam-subset.mjs
 
   eval:
-    name: Evals (Claude Haiku · Claude Sonnet · Qwen)
+    name: Evals (Claude Haiku · Claude Sonnet)
     needs: validate
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - name: Skip when no API keys are configured
         if: env.ANTHROPIC_API_KEY == ''
-        run: echo "::notice::ANTHROPIC_API_KEY secret not set; evals skipped (the Pages site keeps the committed baseline)."
+        run: echo "::notice::Evals skipped by design (no ANTHROPIC_API_KEY secret, to avoid API charges). They run locally and the Pages site publishes the committed baseline."
       - uses: actions/setup-node@v4
         if: env.ANTHROPIC_API_KEY != ''
         with: { node-version: 22, cache: npm }
@@ -57,9 +59,9 @@ jobs:
       - name: Run evals
         if: env.ANTHROPIC_API_KEY != ''
         run: |
-          # Without a Groq key, compare the two Claude models only.
-          FILTER=$([ -z "$GROQ_API_KEY" ] && echo "--filter-providers claude" || true)
-          npx promptfoo eval $FILTER --no-progress-bar -o results/eval.json -o results/eval.html || true
+          # Promptfoo exits 100 when tests fail, which is the gate's call to make below; any other
+          # exit code is a crash and fails here.
+          npx promptfoo eval --no-progress-bar -o results/eval.json -o results/eval.html || [ $? -eq 100 ]
       - name: Summary
         if: env.ANTHROPIC_API_KEY != ''
         run: node scripts/summarize.mjs results/eval.json >> "$GITHUB_STEP_SUMMARY"
@@ -77,6 +79,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
+      - name: Require the Anthropic key (attacks are graded by Claude)
+        run: |
+          [ -n "$ANTHROPIC_API_KEY" ] || { echo "::error::The red team needs the ANTHROPIC_API_KEY secret."; exit 1; }
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
@@ -85,8 +90,7 @@ jobs:
         run: |
           FILE=redteam/redteam.yaml
           if [ "${{ inputs.redteam }}" = quick ]; then node scripts/redteam-subset.mjs; FILE=redteam/redteam.quick.yaml; fi
-          FILTER=$([ -z "$GROQ_API_KEY" ] && echo "--filter-providers claude" || true)
-          npx promptfoo redteam eval -c $FILE $FILTER --no-progress-bar -o results/redteam.json -o results/redteam.html || true
+          npx promptfoo redteam eval -c $FILE --no-progress-bar -o results/redteam.json -o results/redteam.html || [ $? -eq 100 ]
       - run: node scripts/summarize.mjs results/redteam.json >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@v4
         with: { name: redteam-results, path: results/, retention-days: 30 }
@@ -94,7 +98,9 @@ jobs:
   pages:
     name: Publish reports
     needs: [eval, redteam]
-    if: ${{ !cancelled() && github.ref == 'refs/heads/main' && needs.eval.result != 'failure' }}
+    # Publishes even when the quality gate fails, because that's when the report matters. The
+    # run itself still shows red. On pull requests nothing runs here (main only).
+    if: ${{ !cancelled() && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-latest
     permissions:
       pages: write
