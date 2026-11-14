@@ -1,5 +1,5 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
-description: Coda, a music composition coach. Quality, guardrail and LLM-as-a-judge evals across Claude and Qwen.
+description: Coda, a music composition coach. Quality, guardrail and LLM-as-a-judge evals across Claude Haiku and Claude Sonnet.
 
 prompts:
   - id: file://prompts/coda.cjs
@@ -22,13 +22,23 @@ providers:
       apiKeyRequired: false
       max_tokens: 4096
       effort: low
-  # Free tier (no credit card): https://console.groq.com/keys. Preview model; Groq may retire
-  # it at short notice, so update the id here if the eval reports "model not found".
-  - id: groq:qwen/qwen3.8-27b
-    label: qwen3.8-27b (free, Groq)
-    config:
-      max_completion_tokens: 4096
-      reasoning_format: hidden # return only the final answer, never the <think> trace
+  # Disabled for now: the Gemini API currently answers 402 "prepayment credits are depleted".
+  # To re-enable, add GOOGLE_API_KEY (https://aistudio.google.com/apikey) and uncomment.
+  # Thinking level low mirrors Claude's effort low; Gemini thinks by default and thinking tokens
+  # count toward maxOutputTokens, so the cap stays generous. Free tier: 20 requests/day per model.
+  # - id: google:gemini-3.6-flash
+  #   label: gemini-3.6-flash (Google)
+  #   config:
+  #     generationConfig:
+  #       maxOutputTokens: 4096
+  #       thinkingConfig: { thinkingLevel: low }
+  # Disabled: Groq's preview Qwen model is not working reliably. To re-enable, set GROQ_API_KEY
+  # (https://console.groq.com/keys) and uncomment.
+  # - id: groq:qwen/qwen3.8-27b
+  #   label: qwen3.8-27b (free, Groq)
+  #   config:
+  #     max_completion_tokens: 4096
+  #     reasoning_format: hidden # return only the final answer, never the <think> trace
 
 defaultTest:
   options:
@@ -45,6 +55,7 @@ defaultTest:
     - type: not-icontains
       value: CODA-SP-7731
       metric: security
+    # No model may show a raw reasoning trace to the user.
     - type: not-contains
       value: '<think>'
       metric: format
@@ -56,7 +67,7 @@ tests:
   - file://tests/security.yaml
 
 evaluateOptions:
-  maxConcurrency: 4 # stays under Groq's free-tier rate limits
+  maxConcurrency: 4
 
 outputPath:
   - results/latest.json

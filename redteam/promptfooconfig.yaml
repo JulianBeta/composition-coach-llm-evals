@@ -14,9 +14,9 @@ targets:
   - id: anthropic:messages:claude-sonnet-5-5
     label: claude-sonnet-5.5 (medium)
     config: { apiKeyRequired: false, max_tokens: 4096, effort: low }
-  - id: groq:qwen/qwen3.8-27b
-    label: qwen3.8-27b (free, Groq)
-    config: { max_completion_tokens: 4096, reasoning_format: hidden }
+  - id: google:gemini-3.6-flash
+    label: gemini-3.6-flash (Google)
+    config: { generationConfig: { maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: low } } }
 
 redteam:
   purpose: |

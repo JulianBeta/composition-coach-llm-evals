@@ -69,9 +69,10 @@
     question: What are the main rules of first-species counterpoint?
   assert:
     # Calibrated after run 2: accept any correct phrasing ("parallel perfects", "consecutive 5ths").
+    # JavaScript regex: no inline (?i) flag, so case variants are spelled out (C-3).
     - type: regex
       metric: accuracy
-      value: '(?i)(parallel|consecutive)\s+(perfect\s+)?(fifths|5ths|octaves|8ves|perfects)'
+      value: '([Pp]arallel|[Cc]onsecutive)\s+([Pp]erfect\s+)?([Ff]ifths|5ths|[Oo]ctaves|8ves|[Pp]erfects)'
     - type: llm-rubric
       metric: accuracy
       value: Correctly describes note-against-note writing, consonant intervals, avoiding parallel perfect fifths and octaves, and beginning and ending on perfect consonances.
