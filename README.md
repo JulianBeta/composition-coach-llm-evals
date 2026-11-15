@@ -18,6 +18,8 @@ Everything runs on hosted models, so anyone can reproduce it. No local GPU or mo
 
 **📊 Live reports:** https://julianbeta.github.io/composition-coach-llm-evals/
 
+**💬 Try the agent:** `npm run chat` opens a local chat UI with your own Claude access ([setup](#run-it)).
+
 > 🚧 **In progress.** The baseline covers Claude (evals + a quick red team on Haiku and Sonnet). Re-enabling Gemini and Groq,
 > the full multi-turn red team and prompt-variant experiments are next. See the [roadmap](#roadmap).
 
@@ -63,18 +65,42 @@ section to the tests that hold it accountable.
 
 ## Run it
 
+You need [Node.js](https://nodejs.org) 20.12 or newer and **your own** access to Claude. Nothing
+here ships with keys: every model call is made with your credentials.
+
 ```bash
+git clone https://github.com/JulianBeta/composition-coach-llm-evals.git
+cd composition-coach-llm-evals
 npm install
+npm test                # sanity check: unit tests, no keys and no model calls
+```
 
-# Claude, with no API key: uses your local Claude Code session (run `claude /login` once)
-npm run eval:claude
+### 1. Set up your Claude access (pick one)
 
-npm test                # unit tests for the reporting scripts (no API key or model calls)
+| Option | Steps | Cost |
+|---|---|---|
+| **Claude Code session** | Install [Claude Code](https://claude.com/claude-code) and run `claude /login` once. | Uses your Claude plan |
+| **Your own Anthropic API key** | Create a key at [console.anthropic.com](https://console.anthropic.com/settings/keys), then `cp .env.example .env` and set `ANTHROPIC_API_KEY=...` in `.env`. | Billed per token to your account |
 
-npm run eval            # every active model (currently Claude Haiku + Sonnet)
-# Gemini/Groq are commented out in promptfooconfig.yaml; to re-enable one, uncomment it and
-# `cp .env.example .env` to add its key (Promptfoo loads .env automatically)
+If `ANTHROPIC_API_KEY` is set, it is used. Otherwise everything falls back to your Claude Code
+session. `.env` is gitignored. Never commit it or paste keys into issues.
 
+### 2. Chat with Coda
+
+```bash
+npm run chat            # then open http://localhost:3000
+```
+
+A small local chat page that talks to Coda with the same system prompt
+([`prompts/coda-system.md`](prompts/coda-system.md)) and model settings as the evals. Pick
+Claude Haiku 5.5 or Claude Sonnet 5.5 from the dropdown. The terminal shows which login it is using.
+The server listens on `localhost` only, because it spends your credentials. Set `PORT=4000` to use another port.
+
+### 3. Run the evals and red team
+
+```bash
+npm run eval:smoke      # 4 tests on Haiku: quick check that your access works
+npm run eval            # all 29 tests on every active model (Claude Haiku + Sonnet)
 npm run view            # browse results in Promptfoo's UI
 npm run summary         # Markdown model comparison of the last run
 
@@ -83,7 +109,15 @@ npm run redteam:eval    # replay the full committed attack set (slow: multi-turn
 npm run redteam:generate  # regenerate attacks after changing the red team config
 ```
 
-With `ANTHROPIC_API_KEY` set, Claude uses the API key instead of the Claude Code session.
+Rough cost with an API key: a full `npm run eval` is about **$0.40** (both models + the Sonnet judge),
+and `redteam:quick` about **$1.50**. See [docs/RESULTS.md](docs/RESULTS.md) for the per-model breakdown.
+
+### Other models (paused)
+
+Gemini and Groq are commented out in [`promptfooconfig.yaml`](promptfooconfig.yaml) and
+[`redteam/redteam.yaml`](redteam/redteam.yaml). To try one with your own key, uncomment its block
+and set `GOOGLE_API_KEY` or `GROQ_API_KEY` in `.env` (links in [`.env.example`](.env.example)).
+They are used by the evals only. The chat UI offers the Claude models.
 
 ## CI
 

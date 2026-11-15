@@ -4,6 +4,7 @@
   "private": true,
   "description": "Evals and red teaming for Coda, an LLM music-composition coach: Claude Haiku/Sonnet and Google Gemini, LLM-as-a-judge, Promptfoo in CI",
   "scripts": {
+    "chat": "node app/server.mjs",
     "test": "node --test \"tests/scripts/*.test.mjs\"",
     "eval": "promptfoo eval",
     "eval:claude": "promptfoo eval --filter-providers claude",
@@ -21,5 +22,8 @@
     "js-yaml": "^5.5.0",
     "marked": "^18.1.3",
     "promptfoo": "0.125.1"
+  },
+  "engines": {
+    "node": ">=20.12"
   }
 }
