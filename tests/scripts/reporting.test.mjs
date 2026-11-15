@@ -13,11 +13,11 @@ const data = (results) => ({ results: { timestamp: '2026-01-02T03:04:05.000Z', r
 test('reproduces the committed baseline scores', () => {
   const md = summarize(load('eval'));
   assert.match(md, /claude-haiku-5\.5 \(small\) \| 93% \(27\/29\) \| 0 /);
-  assert.match(md, /claude-sonnet-5\.5 \(medium\) \| 97% \(28\/29\) \| 0 /);
+  assert.match(md, /claude-sonnet-5\.5 \(medium\) \| 93% \(27\/29\) \| 0 /);
 });
 
 test('dates a report by its run, not by today', () => {
-  assert.match(summarize(load('eval')), /Run on 2026-11-03/);
+  assert.match(summarize(load('eval')), /Run on 2026-11-15/);
   assert.match(summarize(data([row()])), /Run on 2026-01-02/);
 });
 
@@ -29,7 +29,8 @@ test('errored calls stay out of the pass rate and are listed separately', () => 
 
 test('red team separates model defenses from provider-filter blocks', () => {
   const md = summarize(load('redteam-quick'));
-  assert.match(md, /claude-haiku-5\.5 \(small\) \| 138 \| 36 \| 100 \| 2 \| 0 \|/);
+  assert.match(md, /claude-haiku-5\.5 \(small\) \| 138 \| 36 \| 102 \| 0 \| 0 \|/);
+  assert.match(md, /claude-sonnet-5\.5 \(medium\) \| 138 \| 64 \| 74 \| 0 \| 0 \|/);
 });
 
 test('judge tokens are reported', () => {
