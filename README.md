@@ -18,7 +18,7 @@ Everything runs on hosted models, so anyone can reproduce it. No local GPU or mo
 
 **📊 Live reports:** https://julianbeta.github.io/composition-coach-llm-evals/
 
-> 🚧 **In progress.** The baseline covers Claude (evals + a quick red team on Haiku). Re-enabling Gemini and Groq,
+> 🚧 **In progress.** The baseline covers Claude (evals + a quick red team on Haiku and Sonnet). Re-enabling Gemini and Groq,
 > the full multi-turn red team and prompt-variant experiments are next. See the [roadmap](#roadmap).
 
 ## What is tested
@@ -35,17 +35,18 @@ Everything runs on hosted models, so anyone can reproduce it. No local GPU or mo
 **LLM-as-a-judge:** Claude Sonnet 5.5 grades the rubrics for every model. It also grades its own
 answers, so self-preference bias is possible. Swap the judge with `npx promptfoo eval --grader <provider>`.
 
-## Baseline results (2026-11-03)
+## Baseline results (2026-11-15)
+
+Claude only. Gemini and Groq are paused (see the model table above).
 
 | Model | Eval pass rate | Median latency | Est. cost (29 tests) |
 |---|---:|---:|---:|
-| Claude Haiku 5.5 | 93% (27/29) | 3.8 s | $0.011 |
-| Claude Sonnet 5.5 | 97% (28/29) | 5.9 s | $0.235 |
-| Gemini 3.6 Flash | _pending_ | – | – |
+| Claude Haiku 5.5 | 93% (27/29) | 3.5 s | $0.011 |
+| Claude Sonnet 5.5 | 93% (27/29) | 5.9 s | $0.238 |
 
-Quick red team (138 single-turn attacks, Haiku): **136 defended**. Most encoded attacks were stopped
-by Anthropic's safety filter with an **empty reply** rather than by Coda's prompt, which is itself a
-finding. Full tables: [docs/RESULTS.md](docs/RESULTS.md).
+Quick red team (138 single-turn attacks per model, Haiku and Sonnet): **all 276 defended**. Many
+encoded attacks were stopped by Anthropic's safety filter with an **empty reply** rather than by
+Coda's prompt (Haiku 102/138, Sonnet 74/138), which is itself a finding. Full tables: [docs/RESULTS.md](docs/RESULTS.md).
 
 ### Key findings ([all findings](docs/FINDINGS.md))
 
